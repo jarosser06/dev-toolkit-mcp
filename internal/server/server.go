@@ -8,13 +8,14 @@ import (
 
 // Server wraps the MCP server with task management
 type Server struct {
-	mcpServer *server.MCPServer
-	manager   *task.Manager
-	manifest  *config.Manifest
+	mcpServer    *server.MCPServer
+	manager      *task.Manager
+	manifest     *config.Manifest
+	configLoaded bool
 }
 
 // NewServer creates a new MCP server with task management
-func NewServer(manifest *config.Manifest, manager *task.Manager) *Server {
+func NewServer(manifest *config.Manifest, manager *task.Manager, configLoaded bool) *Server {
 	// Create MCP server with capabilities
 	mcpServer := server.NewMCPServer(
 		"dev-toolkit-mcp",
@@ -25,12 +26,18 @@ func NewServer(manifest *config.Manifest, manager *task.Manager) *Server {
 	)
 
 	s := &Server{
-		mcpServer: mcpServer,
-		manager:   manager,
-		manifest:  manifest,
+		mcpServer:    mcpServer,
+		manager:      manager,
+		manifest:     manifest,
+		configLoaded: configLoaded,
 	}
 
-	// Register tools, resources, and prompts
+	// Register built-in tools (only if no config loaded)
+	if !configLoaded {
+		s.registerBuiltInTools()
+	}
+
+	// Register tools, resources, and prompts from config
 	s.registerTools()
 	s.registerResources()
 	s.registerPrompts()

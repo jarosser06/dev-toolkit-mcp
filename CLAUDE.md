@@ -9,6 +9,50 @@ This project uses the **Dev Toolkit MCP Server** to provide standardized develop
 - **Configuration**: Commands are defined in `examples/basic/mcp-tasks.yaml`
 - **Discoverability**: Tools are self-documenting via MCP protocol
 
+## Bootstrapping New Projects
+
+The MCP server can start without a configuration file, making it easy to bootstrap new projects.
+
+### Using the Init Tool
+
+When no `mcp-tasks.yaml` file is found, the server starts with an empty configuration and provides the `init` tool:
+
+```
+Use init tool to create mcp-tasks.yaml
+```
+
+This creates a minimal configuration file with example tasks:
+- `build` - Build the project
+- `test` - Run tests
+- `lint` - Run linter
+- `ci` task group - Runs lint → test → build
+
+After creating the config, restart the MCP server to load the new configuration.
+
+### Using the CLI Flag
+
+Alternatively, you can use the `-init` command-line flag:
+
+```bash
+./bin/dev-toolkit-mcp -init
+```
+
+This creates `mcp-tasks.yaml` in the current directory and exits. Edit the file to add your project's tasks, then start the server normally.
+
+### Customizing the Init Tool
+
+The `init` tool accepts optional parameters:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `path` | string | `./mcp-tasks.yaml` | Where to create the config file |
+| `overwrite` | boolean | `false` | Whether to replace existing file |
+
+Example:
+```
+Use init tool with path=".mcp/tasks.yaml" and overwrite=false
+```
+
 ## Available Tools
 
 ### Core Development Tools

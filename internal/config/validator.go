@@ -14,9 +14,9 @@ func Validate(manifest *Manifest) error {
 		errors = append(errors, "version is required")
 	}
 
-	// Validate tasks
-	if len(manifest.Tasks) == 0 {
-		errors = append(errors, "at least one task must be defined")
+	// Validate tasks - allow empty task map (for fresh init), but not nil
+	if manifest.Tasks == nil {
+		errors = append(errors, "tasks map must be initialized")
 	}
 
 	for taskName, task := range manifest.Tasks {

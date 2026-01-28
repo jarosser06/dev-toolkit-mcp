@@ -168,13 +168,21 @@ func TestValidate(t *testing.T) {
 			errorMsg:  "version is required",
 		},
 		{
-			name: "no tasks",
+			name: "empty tasks map is valid",
 			manifest: &Manifest{
 				Version: "1.0",
 				Tasks:   map[string]Task{},
 			},
+			wantError: false,
+		},
+		{
+			name: "nil tasks map is invalid",
+			manifest: &Manifest{
+				Version: "1.0",
+				Tasks:   nil,
+			},
 			wantError: true,
-			errorMsg:  "at least one task must be defined",
+			errorMsg:  "tasks map must be initialized",
 		},
 		{
 			name: "missing task description",
@@ -315,11 +323,13 @@ func TestValidate(t *testing.T) {
 
 func TestLoadManifest(t *testing.T) {
 	tests := []struct {
-		name       string
-		setupFiles map[string]string // path -> content
-		customPath string
-		wantError  bool
-		errorMsg   string
+		name         string
+		setupFiles   map[string]string // path -> content
+		customPath   string
+		wantError    bool
+		wantLoaded   bool
+		errorMsg     string
+		validateFunc func(*testing.T, *Manifest)
 	}{
 		{
 			name: "load from default location",
@@ -331,7 +341,8 @@ tasks:
     command: "go test"
 `,
 			},
-			wantError: false,
+			wantError:  false,
+			wantLoaded: true,
 		},
 		{
 			name: "load from custom path",
@@ -345,11 +356,27 @@ tasks:
 			},
 			customPath: "custom/tasks.yaml",
 			wantError:  false,
+			wantLoaded: true,
 		},
 		{
-			name:      "no manifest found",
-			wantError: true,
-			errorMsg:  "no task manifest found",
+			name:       "no manifest found - returns empty config",
+			wantError:  false,
+			wantLoaded: false,
+			validateFunc: func(t *testing.T, m *Manifest) {
+				if m == nil {
+					t.Error("expected non-nil manifest")
+					return
+				}
+				if m.Version != "1.0" {
+					t.Errorf("expected version 1.0, got %s", m.Version)
+				}
+				if m.Tasks == nil {
+					t.Error("expected non-nil tasks map")
+				}
+				if len(m.Tasks) != 0 {
+					t.Errorf("expected empty tasks map, got %d tasks", len(m.Tasks))
+				}
+			},
 		},
 		{
 			name: "invalid manifest",
@@ -360,8 +387,9 @@ tasks:
     command: "go test"
 `,
 			},
-			wantError: true,
-			errorMsg:  "description is required",
+			wantError:  true,
+			wantLoaded: false,
+			errorMsg:   "description is required",
 		},
 	}
 
@@ -396,7 +424,7 @@ tasks:
 				}
 			}
 
-			manifest, err := LoadManifest(tt.customPath)
+			manifest, loaded, err := LoadManifest(tt.customPath)
 			if tt.wantError {
 				if err == nil {
 					t.Errorf("expected error, got nil")
@@ -415,6 +443,15 @@ tasks:
 
 			if manifest == nil {
 				t.Errorf("expected manifest, got nil")
+				return
+			}
+
+			if loaded != tt.wantLoaded {
+				t.Errorf("expected loaded=%v, got %v", tt.wantLoaded, loaded)
+			}
+
+			if tt.validateFunc != nil {
+				tt.validateFunc(t, manifest)
 			}
 		})
 	}
